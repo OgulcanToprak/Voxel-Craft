@@ -1,0 +1,32 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // LWJGL core
+    implementation "org.lwjgl:lwjgl:3.3.1"
+    implementation "org.lwjgl:lwjgl-glfw:3.3.1"
+    implementation "org.lwjgl:lwjgl-opengl:3.3.1"
+
+    // ✅ Add LWJGL STB for texture loading
+    implementation "org.lwjgl:lwjgl-stb:3.3.1"
+
+    // JOML for math
+    implementation "org.joml:joml:1.10.5"
+
+    // LWJGL native runtime (macOS ARM)
+    runtimeOnly "org.lwjgl:lwjgl:3.3.1:natives-macos-arm64"
+    runtimeOnly "org.lwjgl:lwjgl-glfw:3.3.1:natives-macos-arm64"
+    runtimeOnly "org.lwjgl:lwjgl-opengl:3.3.1:natives-macos-arm64"
+    runtimeOnly "org.lwjgl:lwjgl-stb:3.3.1:natives-macos-arm64"
+}
+
+application {
+    mainClass = 'Main'
+
+    applicationDefaultJvmArgs = ['-XstartOnFirstThread']
+}
