@@ -5,5 +5,8 @@ public enum BlockType {
     SOIL,
     STONE,
     WATER,
+    COAL_ORE,
+    IRON_ORE,
+    GRASS_SIDE,
     AIR
 }

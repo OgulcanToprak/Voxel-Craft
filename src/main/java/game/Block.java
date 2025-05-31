@@ -35,8 +35,15 @@ public class Block {
         if (!textureMap.containsKey(BlockType.GRASS)) {
             textureMap.put(BlockType.GRASS, new Texture("resources/textures/grass.png"));      // top‐face for grass
             textureMap.put(BlockType.SOIL,  new Texture("resources/textures/soil.png"));       // for soil top & bottom
-            textureMap.put(BlockType.STONE, new Texture("resources/textures/grass_side.png")); // side texture for grass
+            textureMap.put(BlockType.GRASS_SIDE, new Texture("resources/textures/grass_side.png")); // side texture for grass
+
+            textureMap.put(BlockType.STONE, new Texture("resources/textures/stone.png"));
+            textureMap.put(BlockType.COAL_ORE, new Texture("resources/textures/coal_ore.png"));
+            textureMap.put(BlockType.IRON_ORE, new Texture("resources/textures/iron_ore.png"));
+            
         }
+
+
 
         // — build each face’s Mesh once —
         if (topMesh    == null) topMesh    = new Mesh(CubeData.TOP,    shader.getProgramId());
@@ -72,40 +79,51 @@ public class Block {
         boolean hasBack  = occupied.contains(new Vec3i(bx, by, bz - 1));
 
         // 4) draw the four SIDE faces (if there is no neighbor in that direction):
-        //    – grass cubes use grass_side.png (stored under BlockType.STONE) on their sides
+        //    – grass cubes use grass_side.png (stored under BlockType.GRASS_SIDE) on their sides
         //    – soil (and any other type) uses its own texture on the sides
-        BlockType sideType = (type == BlockType.GRASS) ? BlockType.STONE : type;
-        textureMap.get(sideType).bind();
-        if (!hasFront)  frontMesh.render();
-        if (!hasBack)   backMesh.render();
-        if (!hasLeft)   leftMesh.render();
-        if (!hasRight)  rightMesh.render();
-
-        // 5) draw BOTTOM face if there is no block directly below
-        if (!hasBelow) {
-            textureMap.get(BlockType.SOIL).bind();  // bottom of every cube is “soil”
-            bottomMesh.render();
-        }
-
-        // 6) draw TOP face if there is no block directly above
-        if (!hasAbove) {
-            if (type == BlockType.GRASS) {
-                // a grass block’s top is grass.png with polygon offset
-                textureMap.get(BlockType.GRASS).bind();
-                GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
-                GL11.glPolygonOffset(1.0f, 1.0f);
-                topMesh.render();
-                GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
-            } 
-            else if (type == BlockType.SOIL) {
-                // *** This ensures that any “soil” cube which happens to be the top of a cliff now
-                // *** actually shows a flat soil top (instead of leaving a black gap).
-                textureMap.get(BlockType.SOIL).bind();
-                topMesh.render();
-            }
-            // … (if you have more block types that need their own “top face,” check them here) …
-        }
-    }
+       if (type == BlockType.GRASS) {
+           // Sides
+           textureMap.get(BlockType.GRASS_SIDE).bind();
+           if (!hasFront)  frontMesh.render();
+           if (!hasBack)   backMesh.render();
+           if (!hasLeft)   leftMesh.render();
+           if (!hasRight)  rightMesh.render();
+       
+           // Bottom
+           if (!hasBelow) {
+               textureMap.get(BlockType.SOIL).bind();
+               bottomMesh.render();
+           }
+       
+           // Top
+           if (!hasAbove) {
+               textureMap.get(BlockType.GRASS).bind();
+               GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
+               GL11.glPolygonOffset(1.0f, 1.0f);
+               topMesh.render();
+               GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
+           }
+       } else if (type == BlockType.SOIL) {
+           textureMap.get(BlockType.SOIL).bind();
+           if (!hasFront)  frontMesh.render();
+           if (!hasBack)   backMesh.render();
+           if (!hasLeft)   leftMesh.render();
+           if (!hasRight)  rightMesh.render();
+           if (!hasBelow)  bottomMesh.render();
+           if (!hasAbove)  topMesh.render();
+       } else {
+           // For STONE, COAL_ORE, IRON_ORE: same texture on all sides
+           Texture tex = textureMap.get(type);
+           tex.bind();
+       
+           if (!hasFront)  frontMesh.render();
+           if (!hasBack)   backMesh.render();
+           if (!hasLeft)   leftMesh.render();
+           if (!hasRight)  rightMesh.render();
+           if (!hasBelow)  bottomMesh.render();
+           if (!hasAbove)  topMesh.render();
+       }
+           }
 
     public void delete() {
         for (Texture tex : textureMap.values()) {

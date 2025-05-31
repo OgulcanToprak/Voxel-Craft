@@ -11,7 +11,7 @@ public class World {
     private final List<Chunk> chunks = new ArrayList<>();
     private final OpenSimplex2F noise = new OpenSimplex2F(123456); // seed
 
-    private float scale = 0.05f;
+    private float scale = 0.06f;
     private float heightMag = 12f;
     private final Shader shader;
 
