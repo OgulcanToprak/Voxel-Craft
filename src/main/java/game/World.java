@@ -22,7 +22,7 @@ public class World {
     private final Shader shader;
 
     // Once a chunk’s center is 3 or more chunks away (in x or z), we delete it:
-    private static final int CHUNK_UNLOAD_RADIUS = 3;
+    private static final int CHUNK_UNLOAD_RADIUS = 2;
 
     public World(Shader shader) {
         this.shader = shader;

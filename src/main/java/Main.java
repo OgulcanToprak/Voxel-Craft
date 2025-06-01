@@ -32,7 +32,7 @@ import gfx.Window;
 public class Main {
     public static void main(String[] args) throws Exception {
         Window window = new Window();
-        if (!window.init(800, 600, "Voxel Craft")) {
+        if (!window.init(1280, 720, "Voxel Craft")) {
             System.err.println("Failed to initialize window");
             return;
         }
