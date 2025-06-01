@@ -92,7 +92,34 @@ public class Mesh {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDeleteBuffers(vboId);
     MemoryUtil.memFree(buffer);
-}
+    }
+
+
+    public static void renderRaw(float [] vertices, Shader shader) {
+        int vboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(vertices.length);
+        buffer.put(vertices).flip();
+        glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
+
+        int posAttrib = glGetAttribLocation(shader.getProgramId(), "position");
+        int texCoordAttrib = glGetAttribLocation(shader.getProgramId(), "texCoord");
+
+        glEnableVertexAttribArray(posAttrib);
+        glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
+
+        glEnableVertexAttribArray(texCoordAttrib);
+        glVertexAttribPointer(texCoordAttrib, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
+
+        glDrawArrays(GL_TRIANGLES, 0, vertices.length / 5);
+
+        glDisableVertexAttribArray(posAttrib);
+        glDisableVertexAttribArray(texCoordAttrib);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDeleteBuffers(vboId);
+        MemoryUtil.memFree(buffer);
+    }
 
 
     public void delete() {

@@ -108,8 +108,8 @@ public void unloadFarChunks(Vector3f playerPosition) {
     int px = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE_X);
     int pz = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE_Z);
 
-    System.out.println("Player is in chunk: " + px + ", " + pz);
-    System.out.println("Chunks loaded before: " + chunks.size());
+  // System.out.println("Player is in chunk: " + px + ", " + pz);
+  // System.out.println("Chunks loaded before: " + chunks.size());
 
     Set<Vec2i> keysCopy = new HashSet<>(chunks.keySet());
     Set<Vec2i> chunksToRemove = new HashSet<>();
@@ -117,9 +117,9 @@ public void unloadFarChunks(Vector3f playerPosition) {
     for (Vec2i key : keysCopy) {
         int dx = key.x - px;
         int dz = key.z - pz;
-        System.out.println("Checking chunk: " + key + " (dx=" + dx + ", dz=" + dz + ")");
+    //    System.out.println("Checking chunk: " + key + " (dx=" + dx + ", dz=" + dz + ")");
         if (Math.abs(dx) >= CHUNK_UNLOAD_RADIUS || Math.abs(dz) >= CHUNK_UNLOAD_RADIUS) {
-            System.out.println("Marking for removal: " + key);
+          //  System.out.println("Marking for removal: " + key);
             chunksToRemove.add(key);
         }
     }
@@ -127,12 +127,12 @@ public void unloadFarChunks(Vector3f playerPosition) {
     for (Vec2i key : chunksToRemove) {
         Chunk removed = chunks.remove(key);
         if (removed != null) {
-            System.out.println("Removing chunk: " + key);
+        //    System.out.println("Removing chunk: " + key);
             removed.delete();
         }
     }
 
-    System.out.println("Chunks loaded after: " + chunks.size());
+  //  System.out.println("Chunks loaded after: " + chunks.size());
 }
 
 

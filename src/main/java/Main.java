@@ -53,6 +53,7 @@ public class Main {
 
         boolean playerMode           = false;
         boolean playerModeToggleHeld = false;
+        boolean startInFirstPerson   = false;
 
         // ─── Enable OpenGL settings ─────────────────────────────────────
         glEnable(GL_DEPTH_TEST);
@@ -76,8 +77,9 @@ public class Main {
         World world = new World(shader);
 
         // ─── Create camera & player ─────────────────────────────────────
-        Camera camera = new Camera(); 
-        Player player = new Player(camera, world, new Vector3f(spawnX, spawnY, spawnZ));
+        Camera camera = new Camera();
+        Player player = new Player(camera, world, new Vector3f(spawnX, spawnY, spawnZ),
+                                   startInFirstPerson);
 
         // ─── Main loop ───────────────────────────────────────────────────
         while (!window.shouldClose()) {
@@ -94,16 +96,32 @@ public class Main {
             } else {
                 playerModeToggleHeld = false;
             }
-            
 
             // ─── Movement / camera control ──────────────────────────────
             if (playerMode) {
-                // In “player mode”, WASD + space/shift move with collision
-                player.update(window);
+                // In “player mode”, let the Player class handle movement/collision
+                // and position the camera inside the player's head/torso.
+                player.update(window, true);
             } else {
-                // Otherwise, WASD zooms the camera forward/backward
+                // Free‐camera mode: do not call player.update(...)
+                // Instead, allow WASD to zoom in/out and mouse‐look.
                 if (window.isKeyPressed(GLFW.GLFW_KEY_W)) camera.zoom(-0.2f);
                 if (window.isKeyPressed(GLFW.GLFW_KEY_S)) camera.zoom( 0.2f);
+
+                // Mouse‐look in free mode (right‐mouse held)
+                if (window.isMouseButtonDown()) {
+                    float sensitivity = 0.3f;
+                    float dy = (float) window.getDeltaY();
+                    float dx = (float) window.getDeltaX();
+
+                    Vector3f rot = camera.getRotation();
+                    rot.x += dy * sensitivity;
+                    rot.y += dx * sensitivity;
+                    rot.x = Math.max(-89f, Math.min(89f, rot.x));
+                    if (rot.y < 0)    rot.y += 360f;
+                    if (rot.y >= 360f) rot.y -= 360f;
+                    camera.setRotation(rot);
+                }
             }
 
             // ─── Terrain parameter tweaks ─────────────────────────────────
@@ -124,41 +142,26 @@ public class Main {
                 world.updateSettings(scale, heightMag);
             }
 
-            // Print out changes
+            // Print out changes to scale/heightMag
             if (scale != prevScale || heightMag != prevHeightMag) {
-                System.out.printf("Scale: %.3f | HeightMag: %.1f%n", scale, heightMag);
+          //      System.out.printf("Scale: %.3f | HeightMag: %.1f%n", scale, heightMag);
                 prevScale = scale;
                 prevHeightMag = heightMag;
             }
 
-            // ─── Mouse‐look when not in “player mode” but right‐mouse is held ─
-            if (!playerMode && window.isMouseButtonDown()) {
-                float sensitivity = 0.3f;
-                float dy = (float) window.getDeltaY();
-                float dx = (float) window.getDeltaX();
-
-                Vector3f rot = camera.getRotation();
-                rot.x += dy * sensitivity;
-                rot.y += dx * sensitivity;
-
-                rot.x = Math.max(-89f, Math.min(89f, rot.x));
-                if (rot.y < 0)    rot.y += 360f;
-                if (rot.y >= 360f) rot.y -= 360f;
-
-                camera.setRotation(rot);
-            }
-
             // ─── Render 3D world ───────────────────────────────────────────
-            Matrix4f view = camera.getViewMatrix(playerMode);
+            Matrix4f view       = camera.getViewMatrix(playerMode);
             Matrix4f projection = new Matrix4f()
-                    .perspective((float) Math.toRadians(45.0), 800f / 600f, 0.1f, 100f);
+                    .perspective((float) Math.toRadians(45.0), 1280f / 720f, 0.1f, 100f);
+
             world.render(view, projection);
+            player.render(view, projection, shader, playerMode);
 
             // ─── Switch to orthographic mode for any 2D UI (optional) ─────
             glMatrixMode(GL_PROJECTION);
             glPushMatrix();
             glLoadIdentity();
-            glOrtho(0, 800, 600, 0, -1, 1);
+            glOrtho(0, 1280, 720, 0, -1, 1);
 
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
@@ -175,7 +178,7 @@ public class Main {
             // ─── FPS counter (every second) ───────────────────────────────
             frames++;
             if (System.currentTimeMillis() - timer >= 1000) {
-                System.err.println("FPS: " + frames);
+           //     System.err.println("FPS: " + frames);
                 frames = 0;
                 timer += 1000;
             }

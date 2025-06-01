@@ -88,4 +88,23 @@ public void setPosition(float x, float y, float z) {
 
     public Vector3f getPosition() {return position;}
     public Vector3f getRotation() {return rotation;}
+
+
+    /**
+     * Compute a yaw/pitch so that the camera “looks at” the given world‐space target.
+     * This sets `rotation.x` = pitch, `rotation.y` = yaw (in degrees).
+     */
+    public void lookAt(Vector3f target) {
+        Vector3f direction = new Vector3f();
+        target.sub(position, direction);
+
+        // Yaw (around Y axis): atan2(dir.x, -dir.z)
+        float yaw   = (float) Math.toDegrees(Math.atan2(direction.x, -direction.z));
+
+        // Pitch (around X axis): atan2(dir.y, sqrt(dx² + dz²))
+        float horizontalDist = (float) Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+        float pitch = (float) Math.toDegrees(Math.atan2(direction.y, horizontalDist));
+
+        rotation.set(pitch, yaw, 0f);
+    }
 }
