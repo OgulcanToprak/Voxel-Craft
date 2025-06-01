@@ -81,6 +81,9 @@ public void setRotation(Vector3f newRotation) {
         distance = Math.max(2.0f, Math.min(100.0f, distance));
     }
 
+public void setPosition(float x, float y, float z) {
+    this.position.set(x, y, z);
+}
 
 
     public Vector3f getPosition() {return position;}
