@@ -7,9 +7,10 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
+import game.animation.PunchAnimation;
 import game.physics.GravitySystem;
-import gfx.Mesh;    // make sure this is on the classpath
-import gfx.Shader;
+import gfx.Mesh;
+import gfx.Shader;    // make sure this is on the classpath
 import gfx.Texture;
 import gfx.Window;
 
@@ -29,6 +30,11 @@ public class Player {
 
     private Vector3f playerPosition;
     private Map<String, float[]> bodyParts;
+
+    // Animation
+    private PunchAnimation punchAnim;
+    private static final float PUNCH_DURATION = 0.1f;
+    private boolean wasPunchPressed = false;
 
     // ─── Textures ───────────────────────────────────────────────────────────────
     private Texture headFrontTex, headBackTex;
@@ -98,6 +104,9 @@ public class Player {
         // ← Grab all parts (six tiny head faces, plus full unit‐cubes for body/limbs)
         this.bodyParts = PlayerData.createPlayerParts();
 
+        // animation hleper
+        this.punchAnim = new PunchAnimation(PUNCH_DURATION);
+
         // Load textures (six for head, one for body, etc.)
         this.headFrontTex  = new Texture("resources/textures/player-face.png");
         this.headBackTex   = new Texture("resources/textures/player-head-back-16x16.png");
@@ -141,7 +150,20 @@ public class Player {
 
         handleMouseLook(window);
         handleMovement(window);
-        updateCameraPosition(firstPerson);
+
+        // ── NEW: detect “mouse‐down edge” rather than “button is down”
+        boolean isNowPressed = window.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_1);
+
+    // ── NEW: Start a punch if user pressed LEFT CLICK (or whatever key/button) ───
+    if (window.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_1) && !punchAnim.isActive()) {
+        punchAnim.start();
+    }
+    wasPunchPressed = isNowPressed;
+        // ── NEW: advance the punch animation each frame ───────────────────────────  
+    float dt = window.getDeltaTimeInSeconds(); // you need a way to get deltaTime
+    punchAnim.update(dt);
+
+    updateCameraPosition(firstPerson);
     }
 
     private void handleMouseLook(Window window) {
@@ -239,6 +261,11 @@ private void updateCameraPosition(boolean firstPerson) {
         return camera;
     }
 
+    public Vector3f getPosition() {
+    return playerPosition;
+}
+
+
 public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean firstPerson) {
     shader.use();
 
@@ -278,7 +305,7 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
         rightArmTopMesh    = new Mesh(bodyParts.get("rightArmTop"),    shader.getProgramId());
         rightArmBottomMesh = new Mesh(bodyParts.get("rightArmBottom"), shader.getProgramId());
 
-        // LEFT LEG faces (each is a unit‐cube, centered at the origin)
+        // LEFT LEG faces
         leftLegFrontMesh  = new Mesh(bodyParts.get("leftLegFront"),  shader.getProgramId());
         leftLegBackMesh   = new Mesh(bodyParts.get("leftLegBack"),   shader.getProgramId());
         leftLegLeftMesh   = new Mesh(bodyParts.get("leftLegLeft"),   shader.getProgramId());
@@ -286,7 +313,7 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
         leftLegTopMesh    = new Mesh(bodyParts.get("leftLegTop"),    shader.getProgramId());
         leftLegBottomMesh = new Mesh(bodyParts.get("leftLegBottom"), shader.getProgramId());
 
-        // RIGHT LEG faces (also unit‐cubes)
+        // RIGHT LEG faces
         rightLegFrontMesh  = new Mesh(bodyParts.get("rightLegFront"),  shader.getProgramId());
         rightLegBackMesh   = new Mesh(bodyParts.get("rightLegBack"),   shader.getProgramId());
         rightLegLeftMesh   = new Mesh(bodyParts.get("rightLegLeft"),   shader.getProgramId());
@@ -299,14 +326,8 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
     // 2) DRAW HEAD (only when NOT in first‐person)
     //───────────────────────────────────────────────────────────
     if (!firstPerson) {
-        // (OPTIONAL) If you want the head to rotate with the body, you can apply the same root‐matrix logic below.
-        // For now, we leave the head unrotated so it always faces “world‐forward.”
         Matrix4f headModel = new Matrix4f()
-            .translate(
-                playerPosition.x,
-                playerPosition.y + 1.5f,
-                playerPosition.z
-            );
+            .translate(playerPosition.x, playerPosition.y + 1.5f, playerPosition.z);
         shader.setUniformMatrix4f("model",      headModel);
         shader.setUniformMatrix4f("view",       view);
         shader.setUniformMatrix4f("projection", projection);
@@ -325,35 +346,30 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
         headBottomMesh.render();
     }
 
-    // ────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────
     // 3) DRAW BODY, ARMS & LEGS (all rotated together)
     //───────────────────────────────────────────────────────────
 
-    // 3.a) Read camera’s yaw (in degrees)
+    // 3.a) Read camera’s yaw (in degrees) and flip in third‐person
     float camYawDeg = camera.getRotation().y;
-
-    // ────────── HERE: if in THIRD-PERSON, add 180° to flip it ──────────
     if (!firstPerson) {
         camYawDeg += 180f;
-        if (camYawDeg >= 360f) {
-            camYawDeg -= 360f;
-        }
+        if (camYawDeg >= 360f) camYawDeg -= 360f;
     }
     float camYawRad = (float) Math.toRadians(camYawDeg);
 
-    // 3.b) Build root matrix at playerPosition, rotated by –camYawRad
+    // 3.b) Build “root” matrix at playerPosition, rotated by –camYawRad
     Matrix4f root = new Matrix4f()
         .translate(playerPosition.x, playerPosition.y, playerPosition.z)
         .rotateY(-camYawRad);
 
     //
-    // 3.c) DRAW TORSO
+    // 3.c) DRAW TORSO (unchanged)
     //
     Matrix4f bodyModel = new Matrix4f(root)
         .translate(0f, 0.5f, 0f);
-
-    shader.setUniformMatrix4f("model",      bodyModel);
-    shader.setUniformMatrix4f("view",       view);
+    shader.setUniformMatrix4f("model", bodyModel);
+    shader.setUniformMatrix4f("view", view);
     shader.setUniformMatrix4f("projection", projection);
 
     bodyFrontBackTex.bind();
@@ -370,75 +386,86 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
     bodyBottomMesh.render();
 
     //
-    // 3.d) DRAW ARMS (using the same root)
+    // ── NEW: get punch progress (0→1→0) ────────────────────────────────
+    float p = punchAnim.getProgress();
+    float maxSwingAngleDegrees = 60f;             // adjust as desired
+    float swingAngle = maxSwingAngleDegrees * p;  // p=0→1→0 maps to 0→60→0
+
     //
-    float bodyHalfWidth = 0.5f; 
+    // 3.d) DRAW ARMS
+    //
+    float bodyHalfWidth = 0.5f;
     float armHalfWidth  = 0.125f;
-    float armYOffset    = 0.5f;
+    float armYOffset    = 0.5f;    // torso center Y = playerY + 0.5
+    float armHeight     = 1.0f;    // each arm cube is 1 unit tall
+    float armPivotY     = armYOffset + (armHeight / 2f); 
+    // armPivotY = playerY + 1.0f = shoulder joint in world space
 
-    // LEFT ARM
-    float leftArmX = -(bodyHalfWidth + armHalfWidth); // –0.625
-    Matrix4f leftArmModel = new Matrix4f(root)
-        .translate(leftArmX, armYOffset, 0f);
-    shader.setUniformMatrix4f("model",      leftArmModel);
-    shader.setUniformMatrix4f("view",       view);
-    shader.setUniformMatrix4f("projection", projection);
+    // ─ LEFT ARM: unchanged pivot around its center ─────────────────────
+float leftArmX = -(bodyHalfWidth + armHalfWidth); // = –0.625
+Matrix4f leftArmModel = new Matrix4f(root)
+    .translate(leftArmX, armYOffset, 0f);
+shader.setUniformMatrix4f("model", leftArmModel);
+shader.setUniformMatrix4f("view", view);
+shader.setUniformMatrix4f("projection", projection);
 
-    leftArmTex.bind();
-    leftArmFrontMesh.render();
-    leftArmBackMesh.render();
-    leftArmLeftMesh.render();
-    leftArmRightMesh.render();
-    leftArmTopMesh.render();
-    leftArmBottomMesh.render();
+leftArmTex.bind();
+leftArmFrontMesh.render();
+leftArmBackMesh.render();
+leftArmLeftMesh.render();
+leftArmRightMesh.render();
+leftArmTopMesh.render();
+leftArmBottomMesh.render();
 
-    // RIGHT ARM
-    float rightArmX = +(bodyHalfWidth + armHalfWidth); // +0.625
-    Matrix4f rightArmModel = new Matrix4f(root)
-        .translate(rightArmX, armYOffset, 0f);
-    shader.setUniformMatrix4f("model",      rightArmModel);
-    shader.setUniformMatrix4f("view",       view);
-    shader.setUniformMatrix4f("projection", projection);
+// ─ RIGHT ARM: pivot at shoulder, tilt forward 90°, then punch‐swing ───────────
+float rightArmX = (bodyHalfWidth + armHalfWidth); // = +0.625
 
-    rightArmTex.bind();
-    rightArmFrontMesh.render();
-    rightArmBackMesh.render();
-    rightArmLeftMesh.render();
-    rightArmRightMesh.render();
-    rightArmTopMesh.render();
-    rightArmBottomMesh.render();
+Matrix4f rightArmModel = new Matrix4f(root)
+    // Step A: move pivot to the shoulder position (world space)
+    .translate(rightArmX, armPivotY, 0f)
+    // Step B: drop cube so its top sits at the origin (pivot = shoulder)
+    .translate(0f, -(armHeight / 2f), 0f)
+    // ─── NEW: pitch arm 90° downward so it lies horizontal in front of the chest ───
+    .rotateX((float) Math.toRadians(-90f))
+    // ─── THEN: pitch by the punch amount (so -90° becomes “-90° – punchAngle”) ───
+    .rotateX((float) Math.toRadians(-swingAngle))
+    // Step D: move cube back so its center sits 0.5 units below shoulder
+    .translate(0f, (armHeight / 2f), 0f);
+
+shader.setUniformMatrix4f("model", rightArmModel);
+shader.setUniformMatrix4f("view",  view);
+shader.setUniformMatrix4f("projection", projection);
+
+rightArmTex.bind();
+rightArmFrontMesh.render();
+rightArmBackMesh.render();
+rightArmLeftMesh.render();
+rightArmRightMesh.render();
+rightArmTopMesh.render();
+rightArmBottomMesh.render();
+
 
     //
-    // 3.e) DRAW LEGS (using the same root)
+    // 3.e) DRAW LEGS (using the same root, no swing) ─────────────────────
     //
     float legWidth      = 0.25f;
     float legHeight     = 1.8f;
     float legDepth      = 0.25f;
-    float legHalfHeight = legHeight / 2f; // 0.9
-    float legHalfWidth  = legWidth  / 2f; // 0.125
+    float legHalfHeight = legHeight / 2f; // = 0.9
+    float legHalfWidth  = legWidth  / 2f; // = 0.125
 
     float feetY = playerPosition.y - halfExtents.y;
-    System.out.printf(
-        ">>> DEBUG: playerY=%.3f, halfExtents.y=%.3f, feetY=%.3f%n",
-        playerPosition.y, halfExtents.y, feetY
-    );
-
     float bootSink = 0.75f;
     float legCenterY = (feetY + legHalfHeight) - bootSink;
     float legYOffset = legCenterY - playerPosition.y;
-    System.out.printf(
-        ">>> DEBUG: legCenterY=%.3f, legHalfHeight=%.3f, bootSink=%.3f, legYOffset=%.3f%n",
-        legCenterY, legHalfHeight, bootSink, legYOffset
-    );
-
-    float legXOffset = bodyHalfWidth - legHalfWidth; // 0.5 – 0.125 = 0.375
+    float legXOffset = bodyHalfWidth - legHalfWidth; // = 0.375
 
     // LEFT LEG
     Matrix4f leftLegModel = new Matrix4f(root)
         .translate(-legXOffset, legYOffset, 0f)
         .scale(legWidth, legHeight, legDepth);
-    shader.setUniformMatrix4f("model",      leftLegModel);
-    shader.setUniformMatrix4f("view",       view);
+    shader.setUniformMatrix4f("model", leftLegModel);
+    shader.setUniformMatrix4f("view", view);
     shader.setUniformMatrix4f("projection", projection);
 
     leftLegTex.bind();
@@ -451,10 +478,10 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
 
     // RIGHT LEG
     Matrix4f rightLegModel = new Matrix4f(root)
-        .translate(+legXOffset, legYOffset, 0f)
+        .translate(legXOffset, legYOffset, 0f)
         .scale(legWidth, legHeight, legDepth);
-    shader.setUniformMatrix4f("model",      rightLegModel);
-    shader.setUniformMatrix4f("view",       view);
+    shader.setUniformMatrix4f("model", rightLegModel);
+    shader.setUniformMatrix4f("view", view);
     shader.setUniformMatrix4f("projection", projection);
 
     rightLegTex.bind();
@@ -465,6 +492,5 @@ public void render(Matrix4f view, Matrix4f projection, Shader shader, boolean fi
     rightLegTopMesh.render();
     rightLegBottomMesh.render();
 }
-
 
 }
