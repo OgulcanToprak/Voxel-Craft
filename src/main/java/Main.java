@@ -83,6 +83,7 @@ public class Main {
 
         // ─── Main loop ───────────────────────────────────────────────────
         while (!window.shouldClose()) {
+            float dt = window.getDeltaTimeInSeconds();
             renderer.clear();
             window.pollMouse();
 
@@ -101,7 +102,7 @@ public class Main {
             if (playerMode) {
                 // In “player mode”, let the Player class handle movement/collision
                 // and position the camera inside the player's head/torso.
-                player.update(window, true);
+                player.update(window,dt, true);
             } else {
                 // Free‐camera mode: do not call player.update(...)
                 // Instead, allow WASD to zoom in/out and mouse‐look.
@@ -178,7 +179,7 @@ public class Main {
             // ─── FPS counter (every second) ───────────────────────────────
             frames++;
             if (System.currentTimeMillis() - timer >= 1000) {
-           //     System.err.println("FPS: " + frames);
+                System.err.println("FPS: " + frames);
                 frames = 0;
                 timer += 1000;
             }

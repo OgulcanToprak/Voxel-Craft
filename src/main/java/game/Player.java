@@ -33,7 +33,7 @@ public class Player {
 
     // Animation
     private PunchAnimation punchAnim;
-    private static final float PUNCH_DURATION = 0.1f;
+    private static final float PUNCH_DURATION = 0.2f;
     private boolean wasPunchPressed = false;
 
     // ─── Textures ───────────────────────────────────────────────────────────────
@@ -126,7 +126,8 @@ public class Player {
         updateCameraPosition(startsFirstPerson);
     }
 
-    public void update(Window window, boolean firstPerson) {
+    public void update(Window window, float dt, boolean firstPerson)
+ {
         // (unchanged chunk‐loading, movement, gravity logic)
         if (chunkLoadCooldown <= 0) {
             int px = (int)Math.floor(playerPosition.x / Chunk.CHUNK_SIZE_X);
@@ -155,12 +156,12 @@ public class Player {
         boolean isNowPressed = window.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_1);
 
     // ── NEW: Start a punch if user pressed LEFT CLICK (or whatever key/button) ───
-    if (window.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_1) && !punchAnim.isActive()) {
+    if (isNowPressed && !punchAnim.isActive()) {
         punchAnim.start();
     }
     wasPunchPressed = isNowPressed;
         // ── NEW: advance the punch animation each frame ───────────────────────────  
-    float dt = window.getDeltaTimeInSeconds(); // you need a way to get deltaTime
+    
     punchAnim.update(dt);
 
     updateCameraPosition(firstPerson);
@@ -426,7 +427,7 @@ Matrix4f rightArmModel = new Matrix4f(root)
     // Step B: drop cube so its top sits at the origin (pivot = shoulder)
     .translate(0f, -(armHeight / 2f), 0f)
     // ─── NEW: pitch arm 90° downward so it lies horizontal in front of the chest ───
-    .rotateX((float) Math.toRadians(-90f))
+    .rotateX((float) Math.toRadians(-60f))
     // ─── THEN: pitch by the punch amount (so -90° becomes “-90° – punchAngle”) ───
     .rotateX((float) Math.toRadians(-swingAngle))
     // Step D: move cube back so its center sits 0.5 units below shoulder

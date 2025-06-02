@@ -61,7 +61,7 @@ public class Window {
         // Before swapping, compute deltaTime for this frame:
         double currentTime = glfwGetTime();
         // (We update lastFrameTime here so getDeltaTimeInSeconds() will return the correct dt next call.)
-        lastFrameTime = currentTime;
+        
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -134,11 +134,12 @@ public class Window {
      *     - Call update() at the end of your main loop (which sets lastFrameTime = current time).
      *     - Then, at the start of the next frame, getDeltaTimeInSeconds() will return (now − lastFrameTime).
      */
-    public float getDeltaTimeInSeconds() {
-        double currentTime = glfwGetTime();
-        double delta = currentTime - lastFrameTime;
-        // Clamp in case something weird happens:
-        if (delta < 0) delta = 0;
-        return (float) delta;
-    }
+public float getDeltaTimeInSeconds() {
+    double currentTime = glfwGetTime();
+    double delta = currentTime - lastFrameTime;
+    lastFrameTime = currentTime; // ✅ move this here, so delta is correct
+    if (delta < 0) delta = 0;
+    return (float) delta;
+}
+
 }
